@@ -29,4 +29,4 @@ docker pull tensorflow/tensorflow:1.15.0-gpu
 docker image build -t privategans:1.0 .
 
 # 8. Run the container
-docker container run -ti privategans:1.0
+docker container run -ti --user 1002 privategans:1.0
