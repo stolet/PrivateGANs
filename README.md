@@ -26,7 +26,7 @@ docker run --gpus all --rm nvidia/cuda nvidia-smi
 docker pull tensorflow/tensorflow:latest-gpu 
 
 # 7. Build docker image (run inside the the PrivateGANs directory)
-docker image build -t privategansv2:1.0 .
+docker image build -t privategans:2.0 .
 
 # 8. Run the container
-docker container run -ti --gpus all privategansv2:1.0
+docker container run -ti --gpus all privategans:2.0
