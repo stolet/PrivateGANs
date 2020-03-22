@@ -23,7 +23,7 @@ lspci | grep -i nvidia
 docker run --gpus all --rm nvidia/cuda nvidia-smi
 
 # 6. Download Tensorflow docker image
-docker pull tensorflow/tensorflow:latest-gpu 
+docker pull tensorflow/tensorflow:2.1.0
 
 # 7. Build docker image (run inside the the PrivateGANs directory)
 docker image build -t privategans:2.0 .
