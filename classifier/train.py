@@ -1,14 +1,17 @@
 import tensorflow as tf
-from tensorflow import keras
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+from tensorflow import keras
 from dataset import CelebA
-from keras.preprocessing.image import ImageDataGenerator
 
-batch_size = 80
-num_epochs = 12 
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.utils import multi_gpu_model
+
+batch_size = 40 * 2 
+num_epochs = 2 
+img_height = 224
+img_width = 224
 
 celeba = CelebA(drop_features=[
     'Attractive',
@@ -42,15 +45,29 @@ valid_generator = val_datagen.flow_from_dataframe(
     class_mode="raw",
 )
 
+print(train_generator)
+
 model = keras.Sequential([
-    keras.layers.Conv2D(64, kernel_size=3, strides=(1, 1), activation='relu'),
+    keras.layers.Conv2D(128, kernel_size=3, strides=(1, 1), input_shape=(img_height, img_width, 3)),
+    keras.layers.LeakyReLU(alpha=0.1),
     keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
-    keras.layers.Conv2D(128, kernel_size=3, strides=(1, 1), activation='relu'),
+    keras.layers.Conv2D(264, kernel_size=3, strides=(1, 1)),
+    keras.layers.LeakyReLU(alpha=0.1),
     keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
-    keras.layers.Flatten(input_shape=(28, 28)),
+    keras.layers.Conv2D(40, kernel_size=3, strides=(1, 1)),
+    keras.layers.LeakyReLU(alpha=0.1),
+    keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
+    keras.layers.Flatten(input_shape=(26, 26, 40)),
     keras.layers.Dense(128, activation='relu'),
     keras.layers.Dense(37)
     ])
+
+
+with tf.device("/cpu:0"):
+    model.build()
+    model.summary()
+
+model = multi_gpu_model(model, gpus=2)
 
 model.compile(loss='cosine_proximity',
               optimizer='adam',
@@ -64,5 +81,6 @@ history = model.fit_generator(
     validation_steps=len(valid_generator),
     max_queue_size=1,
     shuffle=True,
-    #verbose=1
+    #verbose=1,
 )
+
