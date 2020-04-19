@@ -9,7 +9,7 @@ import os
 import time
 import numpy as np
 import tensorflow as tf
-
+import sys
 import config
 import tfutil
 import dataset
@@ -97,7 +97,7 @@ class TrainingSchedule:
         G_lrate_dict            = {},       # Resolution-specific overrides.
         D_lrate_base            = 0.001,    # Learning rate for the discriminator.
         D_lrate_dict            = {},       # Resolution-specific overrides.
-        tick_kimg_base          = 160,      # Default interval of progress snapshots.
+        tick_kimg_base          = 500,      # Default interval of progress snapshots.
         tick_kimg_dict          = {4: 160, 8:140, 16:120, 32:100, 64:80, 128:60, 256:40, 512:20, 1024:10}): # Resolution-specific overrides.
 
         # Training phase.
@@ -173,6 +173,7 @@ def train_progressive_gan(
         reals, labels   = training_set.get_minibatch_tf()
         reals_split     = tf.split(reals, config.num_gpus)
         labels_split    = tf.split(labels, config.num_gpus)
+    
     G_opt = tfutil.Optimizer(name='TrainG', learning_rate=lrate_in, **config.G_opt)
     D_opt = tfutil.Optimizer(name='TrainD', learning_rate=lrate_in, **config.D_opt)
     for gpu in range(config.num_gpus):
@@ -182,6 +183,7 @@ def train_progressive_gan(
             lod_assign_ops = [tf.assign(G_gpu.find_var('lod'), lod_in), tf.assign(D_gpu.find_var('lod'), lod_in)]
             reals_gpu = process_reals(reals_split[gpu], lod_in, mirror_augment, training_set.dynamic_range, drange_net)
             labels_gpu = labels_split[gpu]
+
             with tf.name_scope('G_loss'), tf.control_dependencies(lod_assign_ops):
                 G_loss = tfutil.call_func_by_name(G=G_gpu, D=D_gpu, opt=G_opt, training_set=training_set, minibatch_size=minibatch_split, **config.G_loss)
             with tf.name_scope('D_loss'), tf.control_dependencies(lod_assign_ops):

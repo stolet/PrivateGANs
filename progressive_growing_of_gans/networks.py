@@ -7,6 +7,7 @@
 
 import numpy as np
 import tensorflow as tf
+import sys
 
 # NOTE: Do not import any application-specific modules here!
 
@@ -162,6 +163,7 @@ def G_paper(
     is_template_graph   = False,        # True = template graph constructed by the Network class, False = actual evaluation.
     **kwargs):                          # Ignore unrecognized keyword args.
     
+    
     resolution_log2 = int(np.log2(resolution))
     assert resolution == 2**resolution_log2 and resolution >= 4
     def nf(stage): return min(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_max)
@@ -173,6 +175,12 @@ def G_paper(
     latents_in.set_shape([None, latent_size])
     labels_in.set_shape([None, label_size])
     combo_in = tf.cast(tf.concat([latents_in, labels_in], axis=1), dtype)
+    print("INSIDE GENERATORRR")
+    print("INSIDE GENERATORRR")
+    print("INSIDE GENERATORRR")
+    print("INSIDE GENERATORRR")
+    print("INSIDE GENERATORRR")
+    tf.print(combo_in, output_stream=sys.stdout)
     lod_in = tf.cast(tf.get_variable('lod', initializer=np.float32(0.0), trainable=False), dtype)
 
     # Building blocks.

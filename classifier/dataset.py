@@ -13,8 +13,8 @@ class CelebA():
   def __init__(self, main_folder='../data/', selected_features=None, drop_features=[]):
     self.main_folder = main_folder
     self.images_folder   = os.path.join(main_folder, 'img_align_celeba/img_align_celeba/')
-    self.attributes_path = os.path.join(main_folder, 'list_attr_celeba.csv')
-    self.partition_path  = os.path.join(main_folder, 'list_eval_partition.csv')
+    self.attributes_path = os.path.join(main_folder, 'img_align_celeba/list_attr_celeba.csv')
+    self.partition_path  = os.path.join(main_folder, 'img_align_celeba/list_eval_partition.csv')
     self.selected_features = selected_features
     self.features_name = []
     self.__prepare(drop_features)
