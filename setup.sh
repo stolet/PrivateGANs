@@ -39,6 +39,12 @@ sudo apt-get install -y --no-install-recommends libnvinfer6=6.0.1-1+cuda10.0 \
 
 sudo apt install nvidia-cuda-toolkit
 
+tar zxvf cudnn-10.0-linux-x64-v7.4.2.24.tgz
+
+sudo cp cuda/include/cudnn.h /usr/local/cuda/include
+sudo cp cuda/lib64/libcudnn* /usr/local/cuda/lib64
+sudo chmod a+r /usr/local/cuda/include/cudnn.h /usr/local/cuda/lib64/libcudnn*
+
 cd PrivateGANs
 conda install lmdb
 python3 -m pip install -r requirements.txt
