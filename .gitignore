@@ -1,4 +1,5 @@
 *__pycache__*
+environment/
 datasets/
 data/
 progressive_growing_of_gans/results/
