@@ -12,7 +12,6 @@ Setup correct CUDA ppa on system
 sudo apt update
 sudo add-apt-repository ppa:graphics-drivers/ppasudo apt-key adv --fetch-keys  http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
 sudo bash -c 'echo "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list'sudo bash -c 'echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda_learn.list'
-
 ```
 
 Install CUDA 10.0 Packages
@@ -73,7 +72,6 @@ python3 -m pip install tensorflow-gpu==1.15
 conda install lmdb
 cd Projects/PrivateGANs/progressive_growing_of_gans/
 python3 -m pip install -r requirements-pip.txt
-
 ```
 
 
