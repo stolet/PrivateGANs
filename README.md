@@ -6,6 +6,14 @@ from ICLR 2018.
 
 ## Setup CUDA 10.0 and Libcudnn 7
 
+Remove all Nvidia traces from machine 
+
+```
+sudo rm /etc/apt/sources.list.d/cuda*
+sudo apt remove --autoremove nvidia-cuda-toolkit
+sudo apt remove --autoremove nvidia-*
+```
+
 Setup correct CUDA ppa on system
 
 ```
