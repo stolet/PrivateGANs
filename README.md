@@ -4,63 +4,77 @@ Work on creating and evaluating generative adversarial networks with differentia
 The GANs architecture used is from the paper "Progressive Growing of GANs for Improved Quality, Stability, and Variation"
 from ICLR 2018.
 
-## Setup
+## Setup CUDA 10.0 and Libcudnn 7
 
-### With container
+Setup correct CUDA ppa on system
 
 ```
-# 1. Make sure the NVIDIA drivers for your GPU are installed
+sudo apt update
+sudo add-apt-repository ppa:graphics-drivers/ppasudo apt-key adv --fetch-keys  http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
 
-# 2. Install docker on your machine
-
-# 3. Install NVIDIA docker support
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-
-# 4. Check if GPU is available
-lspci | grep -i nvidia
-
-# 5. Verify Nvidia docker installation
-docker run --gpus all --rm nvidia/cuda nvidia-smi
-
-# 6. Download Tensorflow docker image
-docker pull tensorflow/tensorflow:2.1.0
-
-# 7. Build docker image (run inside the the PrivateGANs directory)
-docker image build -t privategans:2.0 .
-
-# 8. Run the container
-docker container run -ti --gpus all privategans:2.0
+sudo bash -c 'echo "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list'sudo bash -c 'echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda_learn.list'
 
 ```
 
-### Without container
+Install CUDA 10.0 Packages
 
 ```
-# Add NVIDIA package repositories
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_10.1.243-1_amd64.deb
-sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
-sudo dpkg -i cuda-repo-ubuntu1804_10.1.243-1_amd64.deb
+sudo apt update
+sudo apt install cuda-10-0
+sudo apt install libcudnn7
+```
+
+Specify path to CUDA in profile
+
+```
+sudo vi ~/.profile
+```
+
+Add following lines to the end of the profile file:
+
+```
+if [ -d "/usr/local/cuda-10.0/bin/" ]; then
+    export PATH=/usr/local/cuda-10.0/bin${PATH:+:${PATH}}
+    export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+fi
+```
+
+Restart machine
+
+## Setup Python environment
+
+```
 sudo apt-get update
-wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
-sudo apt install ./nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
-sudo apt-get update
+sudo apt-get install python3-venv
+python3 -m venv environment
+source environment/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install setuptools -U
+sudo apt-get install libffi-dev python-dev build-essential
+```
 
-# Install NVIDIA driver
-sudo apt-get install --no-install-recommends nvidia-driver-430
-# Reboot. Check that GPUs are visible using the command: nvidia-smi
+## Install Anaconda
 
-# Install development and runtime libraries (~4GB)
-sudo apt-get install --no-install-recommends \
-    cuda-10-1 \
-    libcudnn7=7.6.4.38-1+cuda10.1  \
-    libcudnn7-dev=7.6.4.38-1+cuda10.1
-
-
-# Install TensorRT. Requires that libcudnn7 is installed above.
-sudo apt-get install -y --no-install-recommends libnvinfer6=6.0.1-1+cuda10.1 \
-    libnvinfer-dev=6.0.1-1+cuda10.1 \
-    libnvinfer-plugin6=6.0.1-1+cuda10.1
+Necessary to install lmdb
 
 ```
+cd ~
+wget https://repo.anaconda.com/archive/Anaconda3-2020.02-Linux-x86_64.sh
+bash Anaconda3-2020.02-Linux-x86_64.sh
+```
+
+Reboot machine
+
+## Install packages
+
+```
+python3 -m pip install pandas
+python3 -m pip install tensorflow
+python3 -m pip install tensorflow-gpu==1.15
+conda install lmdb
+cd Projects/PrivateGANs/progressive_growing_of_gans/
+python3 -m pip install -r requirements-pip.txt
+
+```
+
+
