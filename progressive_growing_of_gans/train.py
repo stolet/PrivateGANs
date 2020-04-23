@@ -175,7 +175,8 @@ def train_progressive_gan(
         labels_split    = tf.split(labels, config.num_gpus)
     
     G_opt = tfutil.Optimizer(name='TrainG', learning_rate=lrate_in, **config.G_opt)
-    D_opt = tfutil.Optimizer(name='TrainD', learning_rate=lrate_in, **config.D_opt)
+    D_opt = tfutil.DPOptimizer(name='TrainD', learning_rate=lrate_in, minibatch_split=minibatch_split, **config.D_opt)
+    #D_opt = tfutil.Optimizer(name='TrainD', learning_rate=lrate_in, **config.D_opt)
     for gpu in range(config.num_gpus):
         with tf.name_scope('GPU%d' % gpu), tf.device('/gpu:%d' % gpu):
             G_gpu = G if gpu == 0 else G.clone(G.name + '_shadow')
