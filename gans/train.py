@@ -6,6 +6,7 @@ import numpy as np
 import os
 import PIL
 import time
+from tensorflow_privacy import DPAdamGaussianOptimizer
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -17,7 +18,7 @@ from IPython import display
 
 from generator import G_model
 from discriminator import D_model
-from losses import D_loss, G_loss
+from losses import D_loss, G_loss, D_loss_dp
 
 tf.enable_eager_execution()
 
@@ -30,6 +31,12 @@ NOISE_DIM            = 100
 YOUNG                = True
 LEARNING_RATE_G      = 1e-4
 LEARNING_RATE_D      = 1e-4
+
+DP_ON                = True
+L2_CLIP              = 1.5
+NOISE_MULT           = 1
+MICROBATCHES         = BATCH_SIZE
+
 
 celeba = celeba = CelebA(drop_features=['5_o_Clock_Shadow', 'Arched_Eyebrows', 'Attractive', 'Bags_Under_Eyes', 'Bald', 'Bangs', 'Big_Lips', 'Big_Nose', 'Black_Hair', 'Blond_Hair', 'Blurry', 'Brown_Hair', 'Bushy_Eyebrows', 'Chubby', 'Double_Chin', 'Eyeglasses', 'Goatee', 'Gray_Hair', 'Heavy_Makeup', 'High_Cheekbones', 'Male', 'Mouth_Slightly_Open', 'Mustache', 'Narrow_Eyes', 'No_Beard', 'Oval_Face', 'Pale_Skin', 'Pointy_Nose', 'Receding_Hairline', 'Rosy_Cheeks', 'Sideburns', 'Smiling', 'Straight_Hair', 'Wavy_Hair', 'Wearing_Earrings', 'Wearing_Hat', 'Wearing_Lipstick', 'Wearing_Necklace', 'Wearing_Necktie'])
 
@@ -72,6 +79,11 @@ valid_generator = val_datagen.flow_from_dataframe(
 
 G_optimizer = keras.optimizers.Adam(LEARNING_RATE_G)
 D_optimizer = keras.optimizers.Adam(LEARNING_RATE_D)
+if DP_ON:
+    D_optimizer = DPAdamGaussianOptimizer(learning_rate=LEARNING_RATE_D,
+                                          l2_norm_clip=L2_CLIP,
+                                          noise_multiplier=NOISE_MULT,
+                                          num_microbatches=MICROBATCHES)
 
 G = G_model()
 D = D_model(img_height=IMG_HEIGHT, img_width=IMG_WIDTH)
@@ -83,9 +95,7 @@ checkpoint = tf.train.Checkpoint(G_optimizer=G_optimizer,
                                  Generator=G,
                                  Discriminator=D)
 
-
-
-checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
+#checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
 
 def generate_and_save_images(model, epoch, test_input):
   predictions = model(test_input, training=False)
@@ -118,7 +128,10 @@ for epoch in range(NUM_EPOCHS):
             fake_preds = D(gen_imgs, training=True)
 
             g_loss = G_loss(fake_preds)
-            d_loss = D_loss(real_preds, fake_preds)
+            if DP_ON:
+                d_loss = D_loss_dp(real_preds, fake_preds)
+            else:
+                d_loss = D_loss(real_preds, fake_preds)
 
         G_grads = G_tape.gradient(g_loss, G.trainable_variables)
         D_grads = D_tape.gradient(d_loss, D.trainable_variables)
@@ -142,3 +155,11 @@ for epoch in range(NUM_EPOCHS):
 display.clear_output(wait=True)
 generate_and_save_images(G, NUM_EPOCHS, seed)
 
+if DP_ON:
+    sampling_prob = 1 / len(train_generator)
+    steps = NUM_EPOCHS * len(train_generator) * BATCH_SIZE
+    
+    orders = [1 + x / 10. for x in range(1, 100)] + list(range(12, 64))
+    rdp = compute_rdp(q=sampling_prob, noise_multiplier=NOISE_MULT, steps=steps, orders=orders)
+    epsilon = get_privacy_spent(orders, rdp, targe_delta=1e-5)[0]
+    print("Epsilon: " + str(epsilon))
