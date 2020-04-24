@@ -23,10 +23,13 @@ tf.enable_eager_execution()
 
 NUM_EXAMPLES_TO_GENERATE = 16
 BATCH_SIZE           = 80
-NUM_EPOCHS           = 1
-IMG_HEIGHT           = 224
-IMG_WIDTH            = 224
+NUM_EPOCHS           = 300
+IMG_HEIGHT           = 64
+IMG_WIDTH            = 64
 NOISE_DIM            = 100
+YOUNG                = True
+LEARNING_RATE_G      = 1e-4
+LEARNING_RATE_D      = 1e-4
 
 celeba = celeba = CelebA(drop_features=['5_o_Clock_Shadow', 'Arched_Eyebrows', 'Attractive', 'Bags_Under_Eyes', 'Bald', 'Bangs', 'Big_Lips', 'Big_Nose', 'Black_Hair', 'Blond_Hair', 'Blurry', 'Brown_Hair', 'Bushy_Eyebrows', 'Chubby', 'Double_Chin', 'Eyeglasses', 'Goatee', 'Gray_Hair', 'Heavy_Makeup', 'High_Cheekbones', 'Male', 'Mouth_Slightly_Open', 'Mustache', 'Narrow_Eyes', 'No_Beard', 'Oval_Face', 'Pale_Skin', 'Pointy_Nose', 'Receding_Hairline', 'Rosy_Cheeks', 'Sideburns', 'Smiling', 'Straight_Hair', 'Wavy_Hair', 'Wearing_Earrings', 'Wearing_Hat', 'Wearing_Lipstick', 'Wearing_Necklace', 'Wearing_Necktie'])
 
@@ -35,6 +38,17 @@ val_datagen = ImageDataGenerator(rescale=1./255)
 
 train_split = celeba.split("training", drop_zero=False)
 val_split = celeba.split("validation", drop_zero=False)
+
+if YOUNG:
+    is_young_t = train_split["Young"]==1
+    is_young_v = val_split["Young"]==1
+    train_split = train_split[is_young_t]
+    val_split = val_split[is_young_v] 
+else :
+    is_old_t = train_split["Young"]==0
+    is_old_v = val_split["Young"]==0
+    train_split = train_split[is_old_t]
+    val_split = val_split[is_old_v]
 
 train_generator = train_datagen.flow_from_dataframe(
     dataframe=train_split,
@@ -56,18 +70,22 @@ valid_generator = val_datagen.flow_from_dataframe(
     class_mode="raw",
 )
 
-G_optimizer = keras.optimizers.Adam(1e-4)
-D_optimizer = keras.optimizers.Adam(1e-4)
+G_optimizer = keras.optimizers.Adam(LEARNING_RATE_G)
+D_optimizer = keras.optimizers.Adam(LEARNING_RATE_D)
 
 G = G_model()
-D = D_model()
+D = D_model(img_height=IMG_HEIGHT, img_width=IMG_WIDTH)
 
-checkpoint_dir = './training_checkpoints'
+checkpoint_dir = './checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
 checkpoint = tf.train.Checkpoint(G_optimizer=G_optimizer,
                                  D_optimizer=D_optimizer,
                                  Generator=G,
                                  Discriminator=D)
+
+
+
+checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
 
 def generate_and_save_images(model, epoch, test_input):
   predictions = model(test_input, training=False)
@@ -76,13 +94,12 @@ def generate_and_save_images(model, epoch, test_input):
 
   for i in range(predictions.shape[0]):
       plt.subplot(4, 4, i+1)
-      plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
+      plt.imshow(predictions[i,:], interpolation="bilinear")
       plt.axis('off')
 
   plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
   plt.show()
 
-print(len(train_generator))
 seed = tf.random.normal([NUM_EXAMPLES_TO_GENERATE, NOISE_DIM])
 
 for epoch in range(NUM_EPOCHS):
@@ -108,24 +125,20 @@ for epoch in range(NUM_EPOCHS):
 
         G_optimizer.apply_gradients(zip(G_grads, G.trainable_variables))
         D_optimizer.apply_gradients(zip(D_grads, D.trainable_variables))
+        
+        # Break loop when one epoch is finished
+        if i >= len(train_generator) / BATCH_SIZE:
+            break
     
         i += 1
-        if i % 100 == 0:
-            checkpoint.save(file_prefix = checkpoint_prefix)
-            print(i)
-            print ('Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
-
-    # Produce images for the GIF as we go
-    #display.clear_output(wait=True)
-    #generate_and_save_images(G, epoch + 1, seed)
-
+        
+    print ('Saving: Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
+    
     # Save the model every 15 epochs
     if (epoch + 1) % 15 == 0:
         checkpoint.save(file_prefix = checkpoint_prefix)
-        print ('Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
 
 # Generate after the final epoch
-tf.enable_eager_execution()
 display.clear_output(wait=True)
 generate_and_save_images(G, NUM_EPOCHS, seed)
 
