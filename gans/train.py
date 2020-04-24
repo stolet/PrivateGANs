@@ -23,7 +23,7 @@ tf.enable_eager_execution()
 
 NUM_EXAMPLES_TO_GENERATE = 16
 BATCH_SIZE           = 80
-NUM_EPOCHS           = 300
+NUM_EPOCHS           = 3000
 IMG_HEIGHT           = 64
 IMG_WIDTH            = 64
 NOISE_DIM            = 100
