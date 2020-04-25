@@ -16,26 +16,39 @@ from tensorflow.keras.utils import multi_gpu_model
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
 from IPython import display
 
-from generator import G_model
-from discriminator import D_model
-from losses import D_loss, G_loss, D_loss_dp
+from generator import Generator
+from discriminator import Discriminator
+from losses import D_loss, G_loss
 
 tf.enable_eager_execution()
 
+# General params
 NUM_EXAMPLES_TO_GENERATE = 16
-BATCH_SIZE           = 80
-NUM_EPOCHS           = 3000
-IMG_HEIGHT           = 64
-IMG_WIDTH            = 64
-NOISE_DIM            = 100
-YOUNG                = True
-LEARNING_RATE_G      = 1e-4
-LEARNING_RATE_D      = 1e-4
+BATCH_SIZE               = 80
+NUM_EPOCHS               = 10
+IMG_HEIGHT               = 28
+IMG_WIDTH                = 28
+NOISE_DIM                = 100
+YOUNG                    = True
+NOISE_SHAPE              = [BATCH_SIZE, NOISE_DIM]
 
-DP_ON                = True
-L2_CLIP              = 1.5
-NOISE_MULT           = 1
-MICROBATCHES         = BATCH_SIZE
+# Generator hyperparams
+OUT_CHANNEL_DIM          = 3
+G_INPUT_SHAPE            = (NOISE_DIM)
+
+# Discriminator hyperparams
+D_INPUT_SHAPE            = (IMG_HEIGHT, IMG_WIDTH, OUT_CHANNEL_DIM)
+
+# Optimizer params
+LEARNING_RATE_G          = 0.00025
+LEARNING_RATE_D          = 0.00025
+BETA1                    = 0.45
+
+# Differential privacy hyperparams
+DP_ON                    = False
+L2_CLIP                  = 1.5
+NOISE_MULT               = 1
+MICROBATCHES             = BATCH_SIZE
 
 
 celeba = celeba = CelebA(drop_features=['5_o_Clock_Shadow', 'Arched_Eyebrows', 'Attractive', 'Bags_Under_Eyes', 'Bald', 'Bangs', 'Big_Lips', 'Big_Nose', 'Black_Hair', 'Blond_Hair', 'Blurry', 'Brown_Hair', 'Bushy_Eyebrows', 'Chubby', 'Double_Chin', 'Eyeglasses', 'Goatee', 'Gray_Hair', 'Heavy_Makeup', 'High_Cheekbones', 'Male', 'Mouth_Slightly_Open', 'Mustache', 'Narrow_Eyes', 'No_Beard', 'Oval_Face', 'Pale_Skin', 'Pointy_Nose', 'Receding_Hairline', 'Rosy_Cheeks', 'Sideburns', 'Smiling', 'Straight_Hair', 'Wavy_Hair', 'Wearing_Earrings', 'Wearing_Hat', 'Wearing_Lipstick', 'Wearing_Necklace', 'Wearing_Necktie'])
@@ -77,16 +90,16 @@ valid_generator = val_datagen.flow_from_dataframe(
     class_mode="raw",
 )
 
-G_optimizer = keras.optimizers.Adam(LEARNING_RATE_G)
-D_optimizer = keras.optimizers.Adam(LEARNING_RATE_D)
+G_optimizer = tf.train.AdamOptimizer(LEARNING_RATE_G, beta1=BETA1)
+D_optimizer = tf.train.AdamOptimizer(LEARNING_RATE_D, beta1=BETA1)
 if DP_ON:
     D_optimizer = DPAdamGaussianOptimizer(learning_rate=LEARNING_RATE_D,
                                           l2_norm_clip=L2_CLIP,
                                           noise_multiplier=NOISE_MULT,
                                           num_microbatches=MICROBATCHES)
 
-G = G_model()
-D = D_model(img_height=IMG_HEIGHT, img_width=IMG_WIDTH)
+G = Generator(G_INPUT_SHAPE, OUT_CHANNEL_DIM) 
+D = Discriminator(D_INPUT_SHAPE)
 
 checkpoint_dir = './checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
@@ -119,19 +132,24 @@ for epoch in range(NUM_EPOCHS):
     for image_batch in train_generator:
         imgs = image_batch[0]
         labels = image_batch[1]
-        noise = tf.random.normal([BATCH_SIZE, NOISE_DIM])
-        
+        noise = tf.random.normal(NOISE_SHAPE)
+
         with tf.GradientTape() as G_tape, tf.GradientTape() as D_tape:
             gen_imgs = G(noise, training=True)
 
-            real_preds = D(imgs, training=True)
-            fake_preds = D(gen_imgs, training=True)
+            real_out = D(imgs, training=True)
+            real_preds = real_out["out"]
+            real_logits = real_out["logits"]
 
-            g_loss = G_loss(fake_preds)
+            fake_out = D(gen_imgs, training=True)
+            fake_preds = fake_out["out"]
+            fake_logits = fake_out["logits"]
+
+            g_loss = G_loss(fake_preds, fake_logits)
             if DP_ON:
-                d_loss = D_loss_dp(real_preds, fake_preds)
+                d_loss = D_loss_dp(fake_preds, fake_logits, real_preds, real_logits)
             else:
-                d_loss = D_loss(real_preds, fake_preds)
+                d_loss = D_loss(fake_preds, fake_logits, real_preds, real_logits)
 
         G_grads = G_tape.gradient(g_loss, G.trainable_variables)
         D_grads = D_tape.gradient(d_loss, D.trainable_variables)
@@ -140,15 +158,15 @@ for epoch in range(NUM_EPOCHS):
         D_optimizer.apply_gradients(zip(D_grads, D.trainable_variables))
         
         # Break loop when one epoch is finished
-        if i >= len(train_generator) / BATCH_SIZE:
+        if i >= len(train_generator):
             break
     
         i += 1
-        
+    
     print ('Saving: Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
     
     # Save the model every 15 epochs
-    if (epoch + 1) % 15 == 0:
+    if (epoch + 1) % 2 == 0:
         checkpoint.save(file_prefix = checkpoint_prefix)
 
 # Generate after the final epoch
