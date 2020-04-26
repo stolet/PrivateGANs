@@ -18,14 +18,14 @@ from IPython import display
 
 from generator import Generator
 from discriminator import Discriminator
-from losses import D_loss, G_loss
+from losses import D_loss, D_loss_dp, G_loss
 
 tf.enable_eager_execution()
 
 # General params
 NUM_EXAMPLES_TO_GENERATE = 16
 BATCH_SIZE               = 80
-NUM_EPOCHS               = 10
+NUM_EPOCHS               = 1
 IMG_HEIGHT               = 28
 IMG_WIDTH                = 28
 NOISE_DIM                = 100
@@ -45,7 +45,7 @@ LEARNING_RATE_D          = 0.00025
 BETA1                    = 0.45
 
 # Differential privacy hyperparams
-DP_ON                    = False
+DP_ON                    = True
 L2_CLIP                  = 1.5
 NOISE_MULT               = 1
 MICROBATCHES             = BATCH_SIZE
@@ -136,6 +136,12 @@ for epoch in range(NUM_EPOCHS):
 
         with tf.GradientTape() as G_tape, tf.GradientTape() as D_tape:
             gen_imgs = G(noise, training=True)
+
+            print("Gen imgs: ")
+            print(len(gen_imgs))
+            print("Imgs: ")
+            print(len(imgs))
+            print()
 
             real_out = D(imgs, training=True)
             real_preds = real_out["out"]
