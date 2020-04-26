@@ -6,6 +6,8 @@ import numpy as np
 import os
 import PIL
 import time
+from tensorflow_privacy.privacy.analysis.rdp_accountant import compute_rdp
+from tensorflow_privacy.privacy.analysis.rdp_accountant import get_privacy_spent
 from tensorflow_privacy import DPAdamGaussianOptimizer
 
 from tensorflow import keras
@@ -24,8 +26,8 @@ tf.enable_eager_execution()
 
 # General params
 NUM_EXAMPLES_TO_GENERATE = 16
-BATCH_SIZE               = 80
-NUM_EPOCHS               = 100
+BATCH_SIZE               = 120
+NUM_EPOCHS               = 1
 IMG_HEIGHT               = 28
 IMG_WIDTH                = 28
 NOISE_DIM                = 100
@@ -44,9 +46,9 @@ LEARNING_RATE_D          = 0.00025
 BETA1                    = 0.45
 
 # Differential privacy hyperparams
-DP_ON                    = False
+DP_ON                    = True
 L2_CLIP                  = 1.5
-NOISE_MULT               = 1
+NOISE_MULT               = 0.53
 MICROBATCHES             = BATCH_SIZE
 
 
@@ -107,6 +109,16 @@ checkpoint = tf.train.Checkpoint(G_optimizer=G_optimizer,
                                  D_optimizer=D_optimizer,
                                  Generator=G,
                                  Discriminator=D)
+
+
+if DP_ON:
+    sampling_prob = 1 / len(train_generator)
+    steps = NUM_EPOCHS * len(train_generator) * BATCH_SIZE
+    
+    orders = [1 + x / 10. for x in range(1, 100)] + list(range(12, 64))
+    rdp = compute_rdp(q=sampling_prob, noise_multiplier=NOISE_MULT, steps=steps, orders=orders)
+    epsilon = get_privacy_spent(orders, rdp, target_delta=1e-5)[0]
+    print("Epsilon: " + str(epsilon))
 
 #checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
 
@@ -173,11 +185,3 @@ display.clear_output(wait=True)
 test_noise = np.random.uniform(-1, 1, size=(NUM_EXAMPLES_TO_GENERATE, NOISE_DIM))
 generate_and_save_images(G, NUM_EPOCHS, test_noise)
 
-if DP_ON:
-    sampling_prob = 1 / len(train_generator)
-    steps = NUM_EPOCHS * len(train_generator) * BATCH_SIZE
-    
-    orders = [1 + x / 10. for x in range(1, 100)] + list(range(12, 64))
-    rdp = compute_rdp(q=sampling_prob, noise_multiplier=NOISE_MULT, steps=steps, orders=orders)
-    epsilon = get_privacy_spent(orders, rdp, targe_delta=1e-5)[0]
-    print("Epsilon: " + str(epsilon))
