@@ -14,7 +14,6 @@ def D_loss(fake_out, fake_logits, real_out, real_logits, smooth_factor=0.1):
 
 def D_loss_dp(fake_out, fake_logits, real_out, real_logits, smooth_factor=0.1):
     loss_real = scel(logits=real_logits, labels=tf.ones_like(real_out) * (1 - smooth_factor))
-    
     loss_fake = scel(logits=fake_logits, labels=tf.zeros_like(fake_out))
     return loss_real + loss_fake
 
