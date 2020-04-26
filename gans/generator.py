@@ -15,6 +15,7 @@ def Generator(input_shape, out_channel_dim, is_train=True, alpha=0.2, keep_prob=
     inputs = keras.Input(shape=input_shape)
 
     # Fully connected layer 1
+    print(inputs)
     fc = layers.Dense(4 * 4 * 1024, use_bias=False, input_shape=input_shape)(inputs)
     fc = tf.reshape(fc, (-1, 4, 4, 1024))
     

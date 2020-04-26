@@ -25,16 +25,15 @@ tf.enable_eager_execution()
 # General params
 NUM_EXAMPLES_TO_GENERATE = 16
 BATCH_SIZE               = 80
-NUM_EPOCHS               = 1
+NUM_EPOCHS               = 100
 IMG_HEIGHT               = 28
 IMG_WIDTH                = 28
 NOISE_DIM                = 100
 YOUNG                    = True
-NOISE_SHAPE              = [BATCH_SIZE, NOISE_DIM]
 
 # Generator hyperparams
 OUT_CHANNEL_DIM          = 3
-G_INPUT_SHAPE            = (NOISE_DIM)
+G_INPUT_SHAPE            = (NOISE_DIM,)
 
 # Discriminator hyperparams
 D_INPUT_SHAPE            = (IMG_HEIGHT, IMG_WIDTH, OUT_CHANNEL_DIM)
@@ -45,7 +44,7 @@ LEARNING_RATE_D          = 0.00025
 BETA1                    = 0.45
 
 # Differential privacy hyperparams
-DP_ON                    = True
+DP_ON                    = False
 L2_CLIP                  = 1.5
 NOISE_MULT               = 1
 MICROBATCHES             = BATCH_SIZE
@@ -98,6 +97,7 @@ if DP_ON:
                                           noise_multiplier=NOISE_MULT,
                                           num_microbatches=MICROBATCHES)
 
+
 G = Generator(G_INPUT_SHAPE, OUT_CHANNEL_DIM) 
 D = Discriminator(D_INPUT_SHAPE)
 
@@ -123,8 +123,6 @@ def generate_and_save_images(model, epoch, test_input):
   plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
   plt.show()
 
-seed = tf.random.normal([NUM_EXAMPLES_TO_GENERATE, NOISE_DIM])
-
 for epoch in range(NUM_EPOCHS):
 
     start = time.time()
@@ -132,16 +130,11 @@ for epoch in range(NUM_EPOCHS):
     for image_batch in train_generator:
         imgs = image_batch[0]
         labels = image_batch[1]
-        noise = tf.random.normal(NOISE_SHAPE)
-
+        batch_size = imgs.shape[0]
+        noise = np.random.uniform(-1, 1, size=(batch_size, NOISE_DIM))
+        
         with tf.GradientTape() as G_tape, tf.GradientTape() as D_tape:
             gen_imgs = G(noise, training=True)
-
-            print("Gen imgs: ")
-            print(len(gen_imgs))
-            print("Imgs: ")
-            print(len(imgs))
-            print()
 
             real_out = D(imgs, training=True)
             real_preds = real_out["out"]
@@ -177,7 +170,8 @@ for epoch in range(NUM_EPOCHS):
 
 # Generate after the final epoch
 display.clear_output(wait=True)
-generate_and_save_images(G, NUM_EPOCHS, seed)
+test_noise = np.random.uniform(-1, 1, size=(NUM_EXAMPLES_TO_GENERATE, NOISE_DIM))
+generate_and_save_images(G, NUM_EPOCHS, test_noise)
 
 if DP_ON:
     sampling_prob = 1 / len(train_generator)
