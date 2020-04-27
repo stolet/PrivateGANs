@@ -1,6 +1,8 @@
 import tensorflow as tf
 
 import glob
+import matplotlib
+matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -26,12 +28,12 @@ tf.enable_eager_execution()
 
 # General params
 NUM_EXAMPLES_TO_GENERATE = 16
-BATCH_SIZE               = 120
-NUM_EPOCHS               = 1
+BATCH_SIZE               = 80
+NUM_EPOCHS               = 100
 IMG_HEIGHT               = 28
 IMG_WIDTH                = 28
 NOISE_DIM                = 100
-YOUNG                    = True
+YOUNG                    = False
 
 # Generator hyperparams
 OUT_CHANNEL_DIM          = 3
@@ -48,7 +50,7 @@ BETA1                    = 0.45
 # Differential privacy hyperparams
 DP_ON                    = True
 L2_CLIP                  = 1.5
-NOISE_MULT               = 0.53
+NOISE_MULT               = 1.95
 MICROBATCHES             = BATCH_SIZE
 
 
@@ -133,7 +135,6 @@ def generate_and_save_images(model, epoch, test_input):
       plt.axis('off')
 
   plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
-  plt.show()
 
 for epoch in range(NUM_EPOCHS):
 
@@ -176,9 +177,11 @@ for epoch in range(NUM_EPOCHS):
     
     print ('Saving: Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
     
-    # Save the model every 15 epochs
-    if (epoch + 1) % 2 == 0:
+    # Save the model every 10 epochs
+    if (epoch + 1) % 10 == 0:
         checkpoint.save(file_prefix = checkpoint_prefix)
+        test_noise = np.random.uniform(-1, 1, size=(NUM_EXAMPLES_TO_GENERATE, NOISE_DIM))
+        generate_and_save_images(G, epoch, test_noise)
 
 # Generate after the final epoch
 display.clear_output(wait=True)
