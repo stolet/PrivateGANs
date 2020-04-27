@@ -19,6 +19,9 @@ IMG_WIDTH                = 28
 NOISE_DIM                = 100
 CHECKPOINT_DIR           = "./gans/celeba_o_dp_13/"
 GENERATED_DATA_DIR       = "./synthetic_data_dp_13/celeba_old/"
+YOUNG                    = False
+DP                       = True
+EPS                      = 13
 
 OUT_CHANNEL_DIM          = 3
 G_INPUT_SHAPE            = (NOISE_DIM,)
@@ -33,4 +36,13 @@ new_images = G(noise, training=False)
 
 for i in range(NUM_EXAMPLES_TO_GENERATE):
     array = new_images[i,:]
-    save_img(GENERATED_DATA_DIR + str(i) + ".jpeg", array)
+    if YOUNG:
+        if DP:
+            save_img(GENERATED_DATA_DIR + "young_dp_" + str(EPS) + "_" + str(i) + ".jpeg", array)
+        else:
+            save_img(GENERATED_DATA_DIR + "young_" + str(i) + ".jpeg", array)
+    else:
+        if DP:
+            save_img(GENERATED_DATA_DIR + "old_dp_" + str(EPS) + "_" +  str(i) + ".jpeg", array)
+        else:
+            save_img(GENERATED_DATA_DIR + "old_" + str(i) + ".jpeg", array)

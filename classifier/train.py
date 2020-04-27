@@ -28,6 +28,11 @@ val_datagen = ImageDataGenerator(rescale=1./255)
 train_split = celeba.split("training", drop_zero=False)
 val_split = celeba.split("validation", drop_zero=False)
 
+print(train_split)
+#synthetic_split
+#synthetic_dp_13_split
+#synthetic_dp_8_split
+
 train_generator = train_datagen.flow_from_dataframe(
     dataframe=train_split,
     directory=celeba.images_folder,
@@ -48,20 +53,20 @@ valid_generator = val_datagen.flow_from_dataframe(
     class_mode="raw",
 )
 
-model = keras.Sequential([
-    keras.layers.Conv2D(128, kernel_size=3, strides=(1, 1), input_shape=(img_height, img_width, 3)),
-    keras.layers.LeakyReLU(alpha=0.1),
-    keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
-    keras.layers.Conv2D(264, kernel_size=3, strides=(1, 1)),
-    keras.layers.LeakyReLU(alpha=0.1),
-    keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
-    keras.layers.Conv2D(40, kernel_size=3, strides=(1, 1)),
-    keras.layers.LeakyReLU(alpha=0.1),
-    keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
-    keras.layers.Flatten(input_shape=(26, 26, 40)),
-    keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dense(37)
-    ])
+#model = keras.Sequential([
+#    keras.layers.Conv2D(128, kernel_size=3, strides=(1, 1), input_shape=(img_height, img_width, 3)),
+#    keras.layers.LeakyReLU(alpha=0.1),
+#    keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
+#    keras.layers.Conv2D(264, kernel_size=3, strides=(1, 1)),
+#    keras.layers.LeakyReLU(alpha=0.1),
+#    keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
+#    keras.layers.Conv2D(40, kernel_size=3, strides=(1, 1)),
+#    keras.layers.LeakyReLU(alpha=0.1),
+#    keras.layers.AveragePooling2D(pool_size=(2, 2), strides=None),
+#    keras.layers.Flatten(input_shape=(26, 26, 40)),
+#    keras.layers.Dense(128, activation='relu'),
+#    keras.layers.Dense(37)
+#    ])
 
 model = keras.Sequential()
 model.add(MobileNetV2(None))
@@ -71,7 +76,7 @@ with tf.device("/cpu:0"):
     model.build()
     model.summary()
 
-model = multi_gpu_model(model, gpus=2)
+#model = multi_gpu_model(model, gpus=2)
 
 model.compile(loss='mean_squared_error',
               optimizer='adam',
