@@ -50,7 +50,7 @@ train_split = celeba.split("training", drop_zero=False)
 val_split = celeba.split("validation", drop_zero=False)
 test_split = celeba.split("test", drop_zero=False)
 
-train_split = balance_dataset(1000, train_split)
+train_split = balance_dataset(4000, train_split)
 val_split = balance_dataset(2000, val_split)
 test_split = balance_dataset(5000, test_split)
 
@@ -61,8 +61,8 @@ synthetic_split = synthetic_split.dataset
 #synthetic_dp_8_split = SyntheticCelebA(main_folder='../synthetic_data_dp_8/') 
 
 train_generator = train_datagen.flow_from_dataframe(
-    dataframe=synthetic_split,
-    directory='../synthetic_data/',
+    dataframe=val_split,
+    directory=celeba.images_folder,
     x_col='image_id',
     y_col=celeba.features_name,
     target_size=(img_height, img_width),
