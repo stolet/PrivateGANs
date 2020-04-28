@@ -13,8 +13,8 @@ class SyntheticCelebA():
         self._parse_data()
     
     def _parse_data(self):
-        old_ids = os.listdir(self.old_folder)
-        young_ids = os.listdir(self.young_folder)
+        old_ids = ['celeba_old/' + s for s in os.listdir(self.old_folder)]
+        young_ids = ['celeba_young/' + s for s in os.listdir(self.young_folder)]
         
         old_data = {"image_id": old_ids, "Young": np.zeros(len(old_ids))}
         young_data = {"image_id": young_ids, "Young": np.ones(len(young_ids))}
