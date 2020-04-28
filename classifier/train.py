@@ -12,7 +12,7 @@ from tensorflow.keras.utils import multi_gpu_model
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
 from tensorflow.keras.callbacks import EarlyStopping
 
-batch_size = 200 
+batch_size = 64 
 num_epochs = 4000 
 img_height = 32
 img_width = 32
@@ -98,8 +98,9 @@ with tf.device("/cpu:0"):
 
 #model = multi_gpu_model(model, gpus=2)
 
+adam = keras.optimizers.Adam(lr=0.1)
 model.compile(loss='binary_crossentropy',
-              optimizer='adadelta',
+              optimizer=adam,
               metrics=['accuracy'])
 
 early_stoppping_callback = EarlyStopping(monitor='val_loss', patience=100)
