@@ -1,9 +1,6 @@
 # PrivateGANs
 Work on creating and evaluating generative adversarial networks with differentially private guarantees.
 
-The GANs architecture used is from the paper "Progressive Growing of GANs for Improved Quality, Stability, and Variation"
-from ICLR 2018.
-
 ## Setup CUDA 10.0 and Libcudnn 7
 
 Remove all Nvidia traces from machine 
